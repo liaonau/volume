@@ -1,0 +1,45 @@
+#!/bin/bash
+
+DO_NORMALIZATION=0
+SPEAKERS='alsa_output.pci-0000_00_1f.3.analog-stereo'
+LADSPA_CONTROL='0,1,0.5,0.99'
+NORMAL_CONTROL='10,0,0.8'
+
+LADSPA='ladspa_sink'
+NORMAL='ladspa_normalized_sink'
+
+MODULE='module-ladspa-sink'
+LADSPA_OPTS="plugin=dyson_compress_1403 label=dysonCompress control=${LADSPA_CONTROL} sink_properties=device.description=${LADSPA}"
+NORMAL_OPTS="plugin=fast_lookahead_limiter_1913 label=fastLookaheadLimiter control=${NORMAL_CONTROL} sink_properties=device.description=${NORMAL}"
+
+clean()
+{
+    for x in $(pactl list modules short|grep ${MODULE}|cut -f1); do
+        pactl unload-module ${x}
+    done
+    pactl set-default-sink ${SPEAKERS}
+    for x in $(pactl list sink-inputs short|cut -f1); do
+        pacmd move-sink-input ${x} ${SPEAKERS}
+    done
+}
+
+init()
+{
+    pactl load-module ${MODULE} sink_name=${LADSPA} sink_master=${SPEAKERS} ${LADSPA_OPTS} >/dev/null
+    pactl set-default-sink ${LADSPA}
+    if [[ ${DO_NORMALIZATION} -ne 0 ]]; then
+        pactl load-module ${MODULE} sink_name=${NORMAL} sink_master=${LADSPA}   ${NORMAL_OPTS} >/dev/null
+        pactl set-default-sink ${NORMAL}
+    fi
+    for x in $(pactl list sink-inputs short|grep -v ${MODULE}|cut -f1); do
+        pacmd move-sink-input ${x} ${SPEAKERS}
+        pacmd move-sink-input ${x} ${LADSPA}
+        if [[ ${DO_NORMALIZATION} -ne 0 ]]; then
+            pacmd move-sink-input ${x} ${NORMAL}
+        fi
+    done
+}
+
+pactl list sinks short|grep ${MODULE} >/dev/null 2>&1
+[[ $? -eq 0 ]] && clean || init
+

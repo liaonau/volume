@@ -1,0 +1,21 @@
+#!/usr/bin/lua
+pa = require("pulseaudio")
+
+if (#arg < 1) then os.exit(1) end
+function is_absolute(s)
+    local b = s:sub(1, 1)
+    if (b == "-") or (b == "+") then
+        return 1
+    end
+    return 0
+end
+step = tonumber(arg[1]) + 0
+
+sinks = pa:get_sinks()
+for _, sink in pairs(sinks) do
+    if (sink.default) then
+        local a = is_absolute(arg[1])
+        pa:set_sink_volume(sink.index, {volume = a * sink.volume + step})
+        break
+    end
+end

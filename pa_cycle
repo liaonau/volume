@@ -1,0 +1,47 @@
+#!/usr/bin/lua
+pa = require("pulseaudio")
+
+sinks = pa:get_sinks()
+
+function get_default_and_next_sink()
+   local wasdef = false
+   local defname, defidx
+   local nextname, nextidx
+   for n, sink in pairs(sinks) do
+      if (tonumber(n) ~= nil) then
+         if (not wasdef) then
+            if (sink.default) then
+               defname, defidx = sink.name, sink.index
+               wasdef = true
+            end
+         else
+            nextname, nextidx = sink.name, sink.index
+            break
+         end
+      end
+   end
+   if (nextname == nil) then
+      for n, sink in pairs(sinks) do
+         if (tonumber(n) ~= nil) then
+            if (sink.name ~= defname) then
+               nextname, nextidx = sink.name, sink.index
+               break
+            end
+         end
+      end
+   end
+   return defname, defidx, nextname, nextidx
+end
+
+defname, defidx, nextname, nextidx = get_default_and_next_sink()
+
+if (#arg < 1) then
+   pa:set_default_sink(nextname)
+   defidx = nextidx
+end
+
+for n, input in pairs(pa:get_sink_inputs()) do
+   if (tonumber(n) ~= nil) then
+      pa:move_sink_input(input.index, defidx)
+   end
+end

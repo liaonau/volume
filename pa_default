@@ -1,0 +1,16 @@
+#!/usr/bin/lua
+pa = require("pulseaudio")
+
+default = nil
+for i, sink in pairs(pa:get_sinks()) do
+    if (sink.default) then
+        default = sink
+        break
+    end
+end
+
+for i, input in pairs(pa:get_sink_inputs()) do
+    if (input.sink ~= default.index) then
+        pa:move_sink_input(input.index, default.index)
+    end
+end

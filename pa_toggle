@@ -1,0 +1,46 @@
+#!/usr/bin/lua
+pa = require("pulseaudio")
+
+sink_names = {
+    headphones  = "alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo",
+    speakers    = "alsa_output.pci-0000_00_1f.3.analog-stereo",
+    ladspa      = "ladspa_sink",
+    normalized  = "ladspa_normalized_sink",
+}
+
+sinks = {}
+default_sink_name = nil
+for i, sink in pairs(pa:get_sinks()) do
+    if (tonumber(i) == nil) then
+        sinks[i] = sink
+        if (sink.default) then
+            default_sink_name = sink.name
+        end
+    end
+end
+
+function sink_exists(sn)
+    for name, _ in pairs(sinks) do
+        if (sn == name) then
+            return true
+        end
+    end
+    return false
+end
+
+function move(sn)
+    if (sink_exists(sn) == true) then
+        pa:set_default_sink(sn)
+        for _, input in pairs(pa:get_sink_inputs()) do
+            pa:move_sink_input(input.index, sinks[sn].index)
+        end
+    end
+end
+
+if (default_sink_name == sink_names.headphones) then
+    move(sink_names.speakers)
+    move(sink_names.ladspa)
+    move(sink_names.normalized)
+else
+    move(sink_names.headphones)
+end

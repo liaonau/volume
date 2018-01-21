@@ -1,0 +1,28 @@
+#!/usr/bin/lua
+
+pa = require("pulseaudio")
+
+function pread(cmd)
+    local f, err = io.popen(cmd, 'r')
+    if f then
+        local s = f:read("*all")
+        f:close()
+        return s
+    end
+end
+
+pid = tonumber(pread('xdotool getwindowpid $(xdotool getactivewindow)'))
+if (not pid) then
+    os.exit(2)
+end
+
+for index, input in pairs(pa:get_sink_inputs()) do
+    if (input.pid ~= nil) then
+        if (pid == input.pid) then
+            pa:set_sink_input_volume(index, {mute = not input.mute})
+            os.exit(0)
+        end
+    end
+end
+os.exit(1)
+

@@ -1,0 +1,10 @@
+#!/usr/bin/lua
+pa = require("pulseaudio")
+
+sinks = pa:get_sinks()
+for _, sink in pairs(sinks) do
+   if (sink.default) then
+      pa:set_sink_volume(sink.index, {mute = not sink.mute})
+      break
+   end
+end
