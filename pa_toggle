@@ -1,11 +1,13 @@
 #!/usr/bin/lua
 pa = require("pulseaudio")
 
-sink_names = {
-    headphones  = "alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo",
-    speakers    = "alsa_output.pci-0000_00_1f.3.analog-stereo",
-    ladspa      = "ladspa_sink",
-    normalized  = "ladspa_normalized_sink",
+sink_names =
+{
+    headphones = "alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo",
+    speakers   = "alsa_output.pci-0000_00_1f.3.analog-stereo",
+    bluetooth  = "bluez_sink.00_1E_7C_2E_E1_EE.a2dp_sink",
+    ladspa     = "ladspa_sink",
+    normalized = "ladspa_normalized_sink",
 }
 
 sinks = {}
@@ -37,10 +39,14 @@ function move(sn)
     end
 end
 
-if (default_sink_name == sink_names.headphones) then
+if (default_sink_name == sink_names.headphones or default_sink_name == sink_names.bluetooth) then
     move(sink_names.speakers)
     move(sink_names.ladspa)
     move(sink_names.normalized)
 else
-    move(sink_names.headphones)
+    if (sink_exists(sink_names.headphones)) then
+        move(sink_names.headphones)
+    elseif (sink_exists(sink_names.bluetooth)) then
+        move(sink_names.bluetooth)
+    end
 end
