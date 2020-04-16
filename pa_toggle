@@ -39,10 +39,20 @@ function move(sn)
     end
 end
 
-if (default_sink_name == sink_names.headphones or default_sink_name == sink_names.bluetooth) then
+function move_to_speakers()
     move(sink_names.speakers)
     move(sink_names.ladspa)
     move(sink_names.normalized)
+end
+
+if (default_sink_name == sink_names.headphones) then
+    if (sink_exists(sink_names.bluetooth)) then
+        move(sink_names.bluetooth)
+    else
+        move_to_speakers()
+    end
+elseif (default_sink_name == sink_names.bluetooth) then
+    move_to_speakers()
 else
     if (sink_exists(sink_names.headphones)) then
         move(sink_names.headphones)
