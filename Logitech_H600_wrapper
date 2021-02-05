@@ -1,0 +1,41 @@
+#!/usr/bin/lua
+pa = require("pulseaudio")
+
+if (#arg) < 1 then
+    os.exit(1)
+end
+
+logitech="alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo"
+
+sinks = {}
+default_sink_name = nil
+for i, sink in pairs(pa:get_sinks()) do
+    if (tonumber(i) == nil) then
+        sinks[i] = sink
+        if (sink.default) then
+            default_sink_name = sink.name
+        end
+    end
+end
+
+function sink_exists(sn)
+    for name, _ in pairs(sinks) do
+        if (sn == name) then
+            return true
+        end
+    end
+    return false
+end
+
+if not sink_exists(logitech) then
+    os.exit(0)
+end
+
+if (default_sink_name ~= logitech) then
+    pa:set_default_sink(logitech)
+    for _, input in pairs(pa:get_sink_inputs()) do
+        pa:move_sink_input(input.index, sinks[logitech].index)
+    end
+else
+    os.execute(table.concat(arg, ' '))
+end
