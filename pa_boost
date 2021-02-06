@@ -1,0 +1,14 @@
+#!/bin/bash
+
+SPEAKERS='alsa_output.pci-0000_00_1f.3.analog-stereo'
+
+MULT=654
+VOLUME=150
+#VOLUME=98100
+
+if [[ ${#} -gt 0 ]] && [[ ! -z ${1##*[!0-9]*} ]] && [[ ${1} -ge 0 ]] && [[ ${1} -le 150 ]]; then
+    VOLUME=${1}
+fi
+
+pacmd set-sink-volume ${SPEAKERS} $(( ${MULT} * ${VOLUME} ))
+
