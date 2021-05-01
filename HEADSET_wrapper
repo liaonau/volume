@@ -1,0 +1,47 @@
+#!/usr/bin/lua
+pa  = require("pulseaudio")
+plp = require("pl.path") -- penlight.path
+
+if (#arg) < 1 then
+    os.exit(1)
+end
+
+local base = plp.basename(arg[0])
+if base == 'Logitech_H600_wrapper' then
+    headset="alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo"
+else
+    headset="bluez_sink."..(os.getenv("HEADSET_ADDRESS") or ''):gsub(':', '_')..".a2dp_sink"
+end
+
+sinks = {}
+default_sink_name = nil
+for i, sink in pairs(pa:get_sinks()) do
+    if (tonumber(i) == nil) then
+        sinks[i] = sink
+        if (sink.default) then
+            default_sink_name = sink.name
+        end
+    end
+end
+
+function sink_exists(sn)
+    for name, _ in pairs(sinks) do
+        if (sn == name) then
+            return true
+        end
+    end
+    return false
+end
+
+if not sink_exists(headset) then
+    os.exit(0)
+end
+
+if (default_sink_name ~= headset) then
+    pa:set_default_sink(headset)
+    for _, input in pairs(pa:get_sink_inputs()) do
+        pa:move_sink_input(input.index, sinks[headset].index)
+    end
+else
+    os.execute(table.concat(arg, ' '))
+end
