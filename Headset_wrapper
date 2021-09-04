@@ -1,16 +1,14 @@
 #!/usr/bin/lua
 pa  = require("pulseaudio")
-plp = require("pl.path") -- penlight.path
 
 if (#arg) < 1 then
     os.exit(1)
 end
 
-local base = plp.basename(arg[0])
-if base == 'Logitech_H600_wrapper' then
-    headset="alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo"
-else
-    headset="bluez_sink."..(os.getenv("HEADSET_ADDRESS") or ''):gsub(':', '_')..".a2dp_sink"
+headsets = {}
+table.insert(headsets, "alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo")
+for bt in string.gmatch(os.getenv("HEADSET_ADDRESS") or '', "(%S+)") do
+    table.insert(headsets, "bluez_sink."..bt:gsub(':', '_')..".a2dp_sink")
 end
 
 sinks = {}
@@ -33,14 +31,21 @@ function sink_exists(sn)
     return false
 end
 
-if not sink_exists(headset) then
+target = nil
+for _, s in ipairs(headsets) do
+    if sink_exists(s) then
+        target = s
+        break
+    end
+end
+if (target == nil) then
     os.exit(0)
 end
 
-if (default_sink_name ~= headset) then
-    pa:set_default_sink(headset)
+if (default_sink_name ~= target) then
+    pa:set_default_sink(target)
     for _, input in pairs(pa:get_sink_inputs()) do
-        pa:move_sink_input(input.index, sinks[headset].index)
+        pa:move_sink_input(input.index, sinks[target].index)
     end
 else
     os.execute(table.concat(arg, ' '))

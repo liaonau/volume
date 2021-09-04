@@ -1,11 +1,15 @@
 #!/usr/bin/lua
 pa = require("pulseaudio")
 
+bts = {}
+for bt in string.gmatch(os.getenv("HEADSET_ADDRESS") or '', "(%S+)") do
+    table.insert(bts, "bluez_sink."..bt:gsub(':', '_')..".a2dp_sink")
+end
 sink_names =
 {
     headphones = "alsa_output.usb-Logitech_Logitech_Wireless_Headset_000D44D39CAA-00.analog-stereo",
     speakers   = "alsa_output.pci-0000_00_1f.3.analog-stereo",
-    bluetooth  = "bluez_sink."..(os.getenv("HEADSET_ADDRESS") or ''):gsub(':', '_')..".a2dp_sink",
+    bluetooth  = bts,
     ladspa     = "ladspa_sink",
     normalized = "ladspa_normalized_sink",
 }
@@ -45,18 +49,35 @@ function move_to_speakers()
     move(sink_names.normalized)
 end
 
+function move_to_bluetooth()
+    for _, bt in ipairs(sink_names.bluetooth) do
+        if (sink_exists(bt)) then
+            move(bt)
+            return true
+        end
+    end
+    return false
+end
+
+function is_default_bluetooth()
+    for _, bt in ipairs(sink_names.bluetooth) do
+        if (default_sink_name == bt) then
+            return true
+        end
+    end
+    return false
+end
+
 if (default_sink_name == sink_names.headphones) then
-    if (sink_exists(sink_names.bluetooth)) then
-        move(sink_names.bluetooth)
-    else
+    if (not move_to_bluetooth()) then
         move_to_speakers()
     end
-elseif (default_sink_name == sink_names.bluetooth) then
+elseif (is_default_bluetooth()) then
     move_to_speakers()
 else
     if (sink_exists(sink_names.headphones)) then
         move(sink_names.headphones)
-    elseif (sink_exists(sink_names.bluetooth)) then
-        move(sink_names.bluetooth)
+    else
+        move_to_bluetooth()
     end
 end
